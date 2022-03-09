@@ -1,4 +1,5 @@
 #include <iostream>
+#include <iomanip>
 #include <fstream>
 #include <cstring>
 using std::cin;
@@ -6,6 +7,7 @@ using std::cout;
 using std::endl;
 
 const int MAX_SIZE = 10;
+const int BUFFER = 64;
 
 enum Game
 {
@@ -67,6 +69,23 @@ struct Player
 
 };
 
+void createClassPlayer(Player player[], int size)
+{
+    for(int i = 0; i < size; i++)
+    {
+        player[i].createPlayer();
+    }
+}
+
+void printClassPlayer(Player player[], int size)
+{
+    for(int i = 0; i < size; i++)
+    {
+        player[i].printPlayer();
+        cout << endl;
+    }
+}
+
 const char* enumToStr(int game)
 {
     switch (game)
@@ -91,52 +110,126 @@ void writePlayer(Player player, std::ofstream& out)
     out << "______________________________________" << '\n';
 }
 
-void writeClassPlayer(Player player[], int size, std::ofstream& out)
+void writeClassPlayer(Player player[], int size)
 {
+    std::fstream out;
+    out.open("player.txt", std::ios::out);
+    if(!out.is_open()) return;
+
+    out << "\t\tPlayer List" << '\n';
+
     for (int i = 0; i < size; i++)
     {
-    out << "Player name: " << player[i].name << '\n';
+        out << '\n' << "Player name: " << player[i].name << '\n';
         out << "Player team: " << player[i].team << '\n';
         out << "Player game: " << enumToStr(player[i].game) << '\n';
         out << "Wins: " << player[i].wins << '\n';
         out << "Losses: " << player[i].losses << '\n';
         out << "W/L ratio: " << player[i].ratioWL << '\n';
-        out << "______________________________________" << '\n';
+        out << "_______________________________";
     }
+
+    out.close();
+}
+
+int strToEnum(const char* game)
+{
+    if(strcmp(game,"CSGO") == 0) return 1;
+    if(strcmp(game,"LOL") == 0) return 2;
+    if(strcmp(game,"Dota") == 0) return 3;
+    if(strcmp(game,"Overwatch") == 0) return 4;
+    if(strcmp(game,"Valorant") == 0) return 5;
+    return 0;
+}
+
+char* getData(char* line, char* result)
+{
+    for(int i = 0;line[i] != '\0';i++)
+    {
+        if(line[i] == ':')
+        {
+            i=i+2;
+            int j = 0;
+            for(;line[i] != '\0';j++, i++)
+            {
+                result[j] = line[i];
+            }
+            result[j] = '\0';
+            return result;
+        }
+    }
+}
+
+void readClassPlayer(Player player[], int &size)
+{
+    std::fstream in;
+    in.open("player.txt", std::ios::in);
+    if(!in.is_open()) return;
+
+    char line[BUFFER];
+    char getInfo[16];
+
+    // Skip row 1 and 2 from txt
+    in.getline(line, BUFFER);
+    in.getline(line, BUFFER);
+
+    for(int i = 0; i < MAX_SIZE && !in.eof(); i++)
+    {
+        // Get name
+        in.getline(line, BUFFER);
+        getData(line, player[i].name);
+
+        // Get team
+        in.getline(line, BUFFER);
+        getData(line, player[i].team);
+
+        // Get game
+        in.getline(line, BUFFER);
+        getData(line, getInfo);
+        player[i].game = (Game)(strToEnum(getInfo));
+
+        // Get wins
+        in.getline(line, BUFFER);
+        getData(line, getInfo);
+        player[i].wins = atoi(getInfo);
+
+        // Get loss
+        in.getline(line, BUFFER);
+        getData(line, getInfo);
+        player[i].losses = atoi(getInfo);
+
+        // Skip W/L ratio
+        in.getline(line, BUFFER);
+        player[i].ratioWL = (double)player[i].wins / (double)player[i].losses;
+
+        // Skip the __________
+        in.getline(line, BUFFER);
+
+        // Increase size of array
+        size++;
+    }
+
+    in.close();
 }
 
 int main()
 {
-    // Player p;
-    // p.createPlayer();
-    // cout << endl << "Player List:" << endl;
-    // p.printPlayer();
-
-    std::ofstream out;
-    out.open("player.txt");
-    out << "Player List: " << '\n';
-    // writePlayer(p, out);
-    
-
-    Player players [MAX_SIZE];
+    Player players[MAX_SIZE];
     int size;
     cout << "How many players would you like to add(MAX 10): ";
     cin >> size;
     cin.ignore();
 
-    for(int i = 0; i < size; i++)
-    {
-        players[i].createPlayer();
-    }
+    createClassPlayer(players, size);
 
-    for(int i = 0; i < size; i++)
-    {
-        players[i].printPlayer();
-    }
+    writeClassPlayer(players, size);
 
-    if(size != 0) writeClassPlayer(players, size, out);
+    Player player[MAX_SIZE];
+    size = 0;
 
-    out.close();
+    readClassPlayer(player, size);
+
+    printClassPlayer(player, size);
 
     return 0;
 }
